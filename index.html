@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <link rel="stylesheet" type="text/css" href="codemirror-5.65.15/lib/codemirror.css" />
+    <script src="codemirror-5.65.15/lib/codemirror.js"></script> 
+    <script src="codemirror-5.65.15/mode/clike/clike.js"></script>
+    <script src="codemirror-5.65.15/mode/python/python.js"></script>
+    <link rel="stylesheet" href="codemirror-5.65.15/theme/dracula.css"/>
+    <script src="codemirror-5.65.15/addon/edit/closebrackets.js"></script>
+    <link rel="stylesheet" href="styles.css">
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" /> -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script>
+    <!-- <script src="node_modules/clipboard/src/clipboard.js"></script> -->
+    <style>
+        #unlock{
+            display:none;
+        }
+    </style>
+</head>
+<body>
+    <div class="row m-5 ">
+        <div class="col">
+            <div class="d-flex justify-content-between h-30 mt-3 mb-4 p-3 rounded" style="background-color:#0E1112">
+                <div class="col-3 text-3">
+                    <label class="visually-hidden" for="inlineFormSelectPref">Preference</label>
+                    <select class="form-select" id="inlineFormSelectPref">
+                      <option selected>Choose...</option>
+                      <option value="Python">Python</option>
+                      <option value="Cpp">Cpp</option>
+                    </select>
+                  </div>
+                  <div class="col-5">
+                      <!-- <button type="button" id="unlock" class="btn btn-warning me-2"><i class="bi bi-unlock"></i> Unlock</button> -->
+                      <button type="button" id="lock" class="btn btn-warning me-2 col-3">Lock</button>
+                      <button type="button" id="copy" class="btn btn-secondary me-2"><i class="bi bi-clipboard"></i> Copy</button>
+                      <button type="button" id="save" class="btn btn-primary me-2" ><i class="bi bi-floppy"></i> Save</button>
+                      <button onclick type="button" id="run" class="btn btn-success col-3 "> Run</button>
+                  </div>
+            </div>
+            <textarea type="text" id="editor" class="form-control" placeholder="First name" aria-label="First name"></textarea>
+        </div>
+        <div class="col d-flex flex-column rounded px-4 mt-3" style="background-color:#0E1112">
+            <div class="h-50">
+                <label for="Input" class="text-white mt-3 mb-2">Input</label>
+                <textarea type="text" id="input" class="form-control h-75" aria-label="Input" style="background-color:#CFD2D1"></textarea>
+            </div>
+            <div class="h-50">
+                <label for="Output" class="text-white mt-1 mb-2">Output</label>
+                <textarea type="text" id="output" class="form-control h-75 mb-2" aria-label="Output" style="background-color:#CFD2D1"></textarea>
+            </div>
+        </div>
+    </div>
+    <!-- <button type="button" id="unlock" class="btn btn-warning"><i class="bi bi-unlock"></i> Unlock</button> -->
+</body>
+<script>
+    var editor = CodeMirror.fromTextArea(document.getElementById("editor"),{
+        mode:"text/x-python",
+        theme:"dracula",
+        lineNumbers:true,
+        autoCloseBrackets:true
+    })
+    var width = window.innerWidth
+    var input = document.getElementById("input")
+    var output = document.getElementById("output")
+    var run = document.getElementById("run")
+    var save = document.getElementById("save")
+    var lock = document.getElementById("lock")
+    // var unlock = document.getElementById("unlock")
+    var lk = document.getElementById("lk")
+    // var save = document.getElementById("save")
+    var copy = document.getElementById("copy")
+    editor.setSize(0.7*width,"500")
+    var option = document.getElementById("inlineFormSelectPref")
+    option.addEventListener("change",function(){
+        if(option.value == "Cpp"){
+            editor.setOption("mode","text/x-c++src");
+        }
+        else if(option.value == "Python"){
+            editor.setOption("mode","text/x-python");
+        }
+    })
+    var code;
+    run.addEventListener("click",async function(){
+        console.log("yo");
+        code={
+            code:editor.getValue(),
+            input:input.value,
+            lang:option.value
+        }
+        var oData=await fetch("http://localhost:8000/compile",{
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify(code)
+        })
+        var d = await oData.json()
+        output.value = d.output
+    })
+
+    save.addEventListener("click", function () {
+        localStorage.setItem("editor-value", editor.getValue()); 
+        alert("Code Saved!!!") 
+    });
+    if (localStorage.getItem("editor-value")) {
+        editor.setValue(localStorage.getItem("editor-value"));
+    }
+    var clipboard = new ClipboardJS('#copy',{
+        text:function(){
+            return editor.getValue();
+        }
+    }) 
+    copy.addEventListener("click",function(){
+        alert("Code Copied!!!")
+    })
+    lock.addEventListener("click",function(){
+        if(editor.getOption("readOnly")){
+            editor.setOption("readOnly", false);
+            lock.textContent="Lock";
+            alert("Editor Unlocked!!!")
+        }
+        else{
+            editor.setOption("readOnly", true);
+            lock.textContent="Unlock";
+            alert("Editor locked!!!")
+        }
+    })  
+    
+</script>
+</html>
