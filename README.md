@@ -1,3 +1,5 @@
+In this project, both frontend and backend has been developed and managed.
+
 //Dependencies:
 npm i codemirror
 npm install express body-parser compilex nodemon 
